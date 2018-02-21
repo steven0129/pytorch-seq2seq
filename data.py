@@ -1,6 +1,8 @@
 import os
-import numpy as np
 import pandas as pd
+import numpy as np
+import torch
+from torch.utils import data
 from tqdm import tqdm
 
 
@@ -15,7 +17,7 @@ class ChinsePoetry():
         return jsonFiles
 
     def getNumpys(self, msg, progress=True):
-        return self.getPandas(msg).values
+        return self.getPandas(msg, progress).values
 
     def getPandas(self, msg, progress=True):
         data = pd.DataFrame([])
@@ -29,5 +31,24 @@ class ChinsePoetry():
 
         return data
 
-    def getFileNames(self):
-        return self.fileNames
+
+class Poet(data.Dataset):
+    def __init__(self, type='train', seed=1):
+        data = np.load('data/poet.npz')
+        length = data['poetry'].shape[0]
+        self.type = type  # train, val, test
+        self.length = length
+
+        np.random.seed(seed)  # 讓每次打亂random都一樣
+        np.random.shuffle(data['poetry'])
+
+        if type == 'train':
+            self.data = data['poetry'][int(0.6 * length):]
+
+    def __getitem__(self, index):
+        # TODO: One-Hot encoding
+        item = self.data[index]
+        return item
+
+    def __len__(self):
+        return self.length
