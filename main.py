@@ -2,20 +2,12 @@ from utils import Visualizer
 from data import ChinsePoetry
 from data import Poet
 from tqdm import tqdm
+from config import Env
 import numpy as np
 import multiprocessing as mp
 import torch
 
-
-class Config(object):
-    env = 'PoetryGen'  # visdom env
-    visdom = True  # 是否使用visdom可視化
-    batch_size = 1  # Batch Size
-    use_gpu = True  # 是否使用GPU加速
-    num_workers = 12
-
-
-options = Config()
+options = Env()
 
 
 def getSeqLength(x):
@@ -33,16 +25,16 @@ def train(**kwargs):
     poet = Poet(type='train')
 
     # 求seq最大長度
-    seqLengths=[]
+    seqLengths = []
     print('正在計算seq最大長度...')
 
-    with mp.Pool() as pool: # CPU平行化
+    with mp.Pool() as pool:  # CPU平行化
         with tqdm(total=len(poet)) as pbar:
-            for _, item in enumerate(pool.imap_unordered(getSeqLength, poet)): # 不按順序的放入執行緒池
+            for _, item in enumerate(pool.imap_unordered(getSeqLength, poet)):  # 不按順序的放入執行緒池
                 seqLengths.append(item)
                 pbar.update()
 
-    maxSeqLength = max(seqLengths)
+    maxSeqLength = max(seqLengths)  # seq最大長度
     print('訓練集中seq最大長度為: ' + str(maxSeqLength))
 
     # TODO: 搭建Seq2seq Model
