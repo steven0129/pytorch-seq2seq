@@ -1,7 +1,6 @@
 from utils import Visualizer
 from data import ChinsePoetry
 from data import Poet
-from torch.utils.data import DataLoader
 import numpy as np
 
 
@@ -24,13 +23,10 @@ def train(**kwargs):
     vis = Visualizer(env=options.env)
 
     # 拿取data
-    # data = np.load('data/poet.npz')
-    # print(data['poetry'])
-    trainDataloader = DataLoader(dataset=Poet(type='train'), batch_size=options.batch_size, num_workers=options.num_workers)
+    poet = Poet(type='train')
+    print(poet[0])
 
     # TODO: 搭建Seq2seq Model
-    for data in enumerate(trainDataloader):
-        print(data)
 
 
 def saveNpz(**kwargs):

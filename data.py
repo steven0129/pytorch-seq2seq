@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torch.utils import data
 from tqdm import tqdm
+import pickle
 
 
 class ChinsePoetry():
@@ -34,20 +35,25 @@ class ChinsePoetry():
 
 class Poet(data.Dataset):
     def __init__(self, type='train', seed=1):
-        data = np.load('data/poet.npz')
-        length = data['poetry'].shape[0]
+        self.npz = np.load('data/poet.npz')['poetry']
         self.type = type  # train, val, test
-        self.length = length
+        self.length = self.npz.shape[0]
+        self.word_dim = 21585
 
         np.random.seed(seed)  # 讓每次打亂random都一樣
-        np.random.shuffle(data['poetry'])
+        np.random.shuffle(self.npz)
 
         if type == 'train':
-            self.data = data['poetry'][int(0.6 * length):]
+            print('開始讀入資料...')
+            self.data = self.npz[:, 1]
 
     def __getitem__(self, index):
-        # TODO: One-Hot encoding
-        item = self.data[index]
+        f = open('data/label.pickle', 'rb')
+        labelEncoder = pickle.load(f)
+        myData = '\\n'.join(self.data[index])
+        myMap = lambda x: torch.from_numpy(labelEncoder.transform(list(x)))
+        item = myMap(myData)
+
         return item
 
     def __len__(self):
