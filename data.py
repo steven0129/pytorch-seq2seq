@@ -27,10 +27,10 @@ class ChinsePoetry():
             print(msg)
             fileNames = tqdm(self.fileNames)
 
-            for fileName in fileNames:
-                data = data.append(pd.read_json(self.path + fileName))
+        for fileName in fileNames:
+            data = data.append(pd.read_json(self.path + fileName))
 
-            return data
+        return data
 
 
 class Poet(data.Dataset):

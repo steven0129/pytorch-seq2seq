@@ -3,6 +3,8 @@ from data import ChinsePoetry
 from data import Poet
 from tqdm import tqdm
 import numpy as np
+import multiprocessing as mp
+import torch
 
 
 class Config(object):
@@ -16,6 +18,10 @@ class Config(object):
 options = Config()
 
 
+def getSeqLength(x):
+    return list(x.size())[0]
+
+
 def train(**kwargs):
     for k, v in kwargs.items():
         setattr(options, k, v)
@@ -25,7 +31,19 @@ def train(**kwargs):
 
     # 拿取data
     poet = Poet(type='train')
-    print(poet[0])
+
+    # 求seq最大長度
+    seqLengths=[]
+    print('正在計算seq最大長度...')
+
+    with mp.Pool() as pool: # CPU平行化
+        with tqdm(total=len(poet)) as pbar:
+            for _, item in enumerate(pool.imap_unordered(getSeqLength, poet)): # 不按順序的放入執行緒池
+                seqLengths.append(item)
+                pbar.update()
+
+    maxSeqLength = max(seqLengths)
+    print('訓練集中seq最大長度為: ' + str(maxSeqLength))
 
     # TODO: 搭建Seq2seq Model
 
