@@ -1,6 +1,7 @@
 from utils import Visualizer
 from data import ChinsePoetry
 from data import Poet
+from tqdm import tqdm
 import numpy as np
 
 
