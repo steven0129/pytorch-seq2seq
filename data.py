@@ -2,9 +2,25 @@ import os
 import pandas as pd
 import numpy as np
 import torch
+from torch import nn, optim
+from torch.autograd import Variable
 from torch.utils import data
 from tqdm import tqdm
 import pickle
+
+
+class OneHot(nn.Module):
+    def __init__(self, depth):
+        super(OneHot, self).__init__()
+        self.depth = depth
+        self.ones = torch.sparse.torch.eye(depth)
+
+    def forward(self, X_in):
+        X_in = X_in.long()
+        return Variable(self.ones.index_select(0, X_in.data))
+
+    def __repr__(self):
+        return self.__class__.__name__ + "({})".format(self.depth)
 
 
 class ChinsePoetry():
@@ -34,7 +50,7 @@ class ChinsePoetry():
 
 
 class Poet(data.Dataset):
-    def __init__(self, type='train', ratio = 0.6, seed=1):
+    def __init__(self, type='train', ratio=0.6, seed=1):
         errIndex = [6240, 7802, 12280, 24700, 26395, 31326, 38520, 40163, 50285, 53447, 70357, 70420, 70496, 70590,
                     70615, 70738, 71041, 73598, 74755, 84433, 89316, 95806, 97300, 104323, 104325, 107020, 108846,
                     109034, 109357, 109845, 109914, 109984, 110083, 110085, 110106, 110119, 110355, 110745, 131628,
@@ -58,8 +74,8 @@ class Poet(data.Dataset):
     def __getitem__(self, index):
         f = open('data/label.pickle', 'rb')
         labelEncoder = pickle.load(f)
-        resultMap = lambda x: torch.from_numpy(labelEncoder.transform(list('\\n'.join(x))))
-        dataMap = lambda x: torch.from_numpy(labelEncoder.transform(list(map(lambda x: x[0], x))))
+        resultMap = lambda x: torch.from_numpy(labelEncoder.transform(list('\\n'.join(x))))  # numpy
+        dataMap = lambda x: torch.from_numpy(labelEncoder.transform(list(map(lambda x: x[0], x))))  # numpy
 
         resultItem = resultMap(self.data[index])
         dataItem = dataMap(self.data[index])

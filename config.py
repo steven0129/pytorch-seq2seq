@@ -4,3 +4,4 @@ class Env(object):
     batch_size = 1  # Batch Size
     use_gpu = True  # 是否使用GPU加速
     use_teacher_forcing = True  # 是否使用Teacher Forcing
+    word_dim = 21589
