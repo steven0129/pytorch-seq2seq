@@ -5,3 +5,4 @@ class Env(object):
     use_gpu = True  # 是否使用GPU加速
     use_teacher_forcing = True  # 是否使用Teacher Forcing
     word_dim = 21589
+    ratio = 0.6  # training data比例

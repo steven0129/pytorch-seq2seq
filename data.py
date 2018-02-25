@@ -83,9 +83,6 @@ class Poet(data.Dataset):
         resultItem = resultMap(self.data[index])
         dataItem = dataMap(self.data[index])
 
-        resultItem = resultItem.cuda() if options.use_gpu else resultItem
-        dataItem = dataItem.cuda() if options.use_gpu else dataItem
-
         return [dataItem, resultItem]
 
     def __len__(self):

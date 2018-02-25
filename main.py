@@ -25,13 +25,11 @@ def train(**kwargs):
     vis = Visualizer(env=options.env)
 
     # 拿取data
-    poet = Poet(type='train')
+    poet = Poet(type='train', ratio=options.ratio)
 
     # 求seq最大長度
     encoderLengths = torch.zeros(len(poet)).type(torch.LongTensor)
-    encoderLengths = encoderLengths.cuda() if options.use_gpu else encoderLengths
     decoderLengths = torch.zeros(len(poet)).type(torch.LongTensor)
-    decoderLengths = decoderLengths.cuda() if options.use_gpu else decoderLengths
 
     print('正在計算seq最大長度...')
     getSeqLength = lambda x: list(x.size())[0]
@@ -43,7 +41,7 @@ def train(**kwargs):
     maxDecoderLength = torch.max(decoderLengths)  # decoder最大長度
     maxEncoderLength = torch.max(encoderLengths)  # encoder最大長度
 
-    # padding sequeces
+    # 幫sequence補0
     encoderPadded = []
     decoderPadded = []
 
@@ -62,6 +60,8 @@ def train(**kwargs):
 
     encoderVar = torch.stack(encoderPadded).transpose(0, 1)
     decoderVar = torch.stack(decoderPadded).transpose(0, 1)
+    encoderVar = encoderVar.cuda() if options.use_gpu else encoderVar
+    decoderVar = decoderVar.cuda() if options.use_gpu else decoderVar
 
     print(encoderVar.shape)
     print(decoderVar.shape)
