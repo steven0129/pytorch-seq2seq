@@ -4,7 +4,6 @@ from tqdm import tqdm
 from config import Env
 from model import EncoderRNN
 from torch.autograd import Variable
-from numba import njit, prange
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -26,25 +25,31 @@ def train(**kwargs):
     vis = Visualizer(env=options.env)
 
     # 拿取data
-    poet = Poet(type='train', ratio=0.01)
+    poet = Poet(type='train')
 
     # 求seq最大長度
-    encoderLengths = []
-    encoderPadded = []
-    decoderLengths = []
-    decoderPadded = []
+    encoderLengths = torch.zeros(len(poet)).type(torch.LongTensor)
+    encoderLengths = encoderLengths.cuda() if options.use_gpu else encoderLengths
+    decoderLengths = torch.zeros(len(poet)).type(torch.LongTensor)
+    decoderLengths = decoderLengths.cuda() if options.use_gpu else decoderLengths
 
     print('正在計算seq最大長度...')
     getSeqLength = lambda x: list(x.size())[0]
-    for [data, result] in tqdm(poet):
-        encoderLengths.append(getSeqLength(data))
-        decoderLengths.append(getSeqLength(result))
+    for i, [data, result] in tqdm(enumerate(poet), total=len(poet)):
+        # TODO: 有沒有方法可以加速?
+        encoderLengths[i] = getSeqLength(data)
+        decoderLengths[i] = getSeqLength(result)
 
-    maxDecoderLength = max(decoderLengths)  # decoder最大長度
-    maxEncoderLength = max(encoderLengths)  # encoder最大長度
+    maxDecoderLength = torch.max(decoderLengths)  # decoder最大長度
+    maxEncoderLength = torch.max(encoderLengths)  # encoder最大長度
+
+    # padding sequeces
+    encoderPadded = []
+    decoderPadded = []
 
     print('padding sequences...')
-    for [data, result] in tqdm(poet):
+    for i, [data, result] in tqdm(enumerate(poet), total=len(poet)):
+        # TODO: 有沒有方法可以加速?
         encoderPadded.append(padSeq(data, maxEncoderLength))
         decoderPadded.append(padSeq(result, maxDecoderLength))
 

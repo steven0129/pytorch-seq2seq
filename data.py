@@ -6,7 +6,10 @@ from torch import nn, optim
 from torch.autograd import Variable
 from torch.utils import data
 from tqdm import tqdm
+from config import Env
 import pickle
+
+options = Env()
 
 
 class OneHot(nn.Module):
@@ -79,6 +82,9 @@ class Poet(data.Dataset):
 
         resultItem = resultMap(self.data[index])
         dataItem = dataMap(self.data[index])
+
+        resultItem = resultItem.cuda() if options.use_gpu else resultItem
+        dataItem = dataItem.cuda() if options.use_gpu else dataItem
 
         return [dataItem, resultItem]
 
