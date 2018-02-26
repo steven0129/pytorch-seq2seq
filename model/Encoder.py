@@ -1,4 +1,3 @@
-# TODO: 搭建Seq2seq Attention-based的Model
 from torch import nn
 from torch.autograd import Variable
 from config import Env
@@ -8,9 +7,9 @@ import torch.nn.functional as F
 options = Env()
 
 
-class EncoderRNN(nn.Module):
+class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, n_layers=1, dropout=0.1):
-        super(EncoderRNN, self).__init__()
+        super(RNN, self).__init__()
 
         self.input_size = input_size
         self.hidden_size = hidden_size

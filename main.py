@@ -2,19 +2,25 @@ from utils import Visualizer
 from data import ChinsePoetry, Poet, OneHot
 from tqdm import tqdm
 from config import Env
-from model import EncoderRNN
 from torch.autograd import Variable
+from model import Encoder
 import numpy as np
 import torch
+from torch.utils import data as D
 import torch.nn.functional as F
 
 options = Env()
 
 
 # Pad a with the PAD symbol
-def padSeq(tensor, max_length):
-    tensor = F.pad(tensor, (0, max_length - tensor.size()[0]), 'constant', 0)
+def padSeq(tensor, max_length, symbol):
+    tensor = F.pad(tensor, (0, max_length - tensor.size()[0]), 'constant', symbol).data
     return tensor
+
+
+def getSeqLength(arr):
+    myMap = lambda x: list(map(lambda xx: list(xx.size())[0], x))
+    return myMap(arr)
 
 
 def train(**kwargs):
@@ -32,39 +38,59 @@ def train(**kwargs):
     decoderLengths = torch.zeros(len(poet)).type(torch.LongTensor)
 
     print('正在計算seq最大長度...')
-    getSeqLength = lambda x: list(x.size())[0]
-    for i, [data, result] in tqdm(enumerate(poet), total=len(poet)):
+    for i, [encoderLength, decoderLength] in tqdm(enumerate(map(getSeqLength, poet)), total=len(poet)):
         # TODO: 有沒有方法可以加速?
-        encoderLengths[i] = getSeqLength(data)
-        decoderLengths[i] = getSeqLength(result)
+        encoderLengths[i] = encoderLength
+        decoderLengths[i] = decoderLength
 
     maxDecoderLength = torch.max(decoderLengths)  # decoder最大長度
     maxEncoderLength = torch.max(encoderLengths)  # encoder最大長度
 
     # 幫sequence補0
-    encoderPadded = []
-    decoderPadded = []
+    encoderPadded = torch.zeros(len(poet), maxEncoderLength)
+    decoderPadded = torch.zeros(len(poet), maxDecoderLength)
 
     print('padding sequences...')
     for i, [data, result] in tqdm(enumerate(poet), total=len(poet)):
         # TODO: 有沒有方法可以加速?
-        encoderPadded.append(padSeq(data, maxEncoderLength))
-        decoderPadded.append(padSeq(result, maxDecoderLength))
-
-    print('encoder最大長度為: ' + str(maxEncoderLength))
-    print('padded encoder shape = ' + str(torch.stack(encoderPadded).shape))
-    print('decoder最大長度為: ' + str(maxDecoderLength))
-    print('padded decoder shape = ' + str(torch.stack(decoderPadded).shape))
+        encoderPadded[i] = padSeq(data, maxEncoderLength, poet.PAD)
+        decoderPadded[i] = padSeq(result, maxDecoderLength, poet.PAD)
 
     # TODO: 訓練Seq2seq Model
+    encoderTensor = torch.stack(encoderPadded)
+    decoderTensor = torch.stack(decoderPadded)
+    dataset = D.TensorDataset(data_tensor=encoderTensor.type(torch.LongTensor),
+                              target_tensor=decoderTensor.type(torch.LongTensor))
+    loader = D.DataLoader(dataset=dataset, batch_size=options.batch_size, num_workers=options.CPU)
 
-    encoderVar = torch.stack(encoderPadded).transpose(0, 1)
-    decoderVar = torch.stack(decoderPadded).transpose(0, 1)
-    encoderVar = encoderVar.cuda() if options.use_gpu else encoderVar
-    decoderVar = decoderVar.cuda() if options.use_gpu else decoderVar
+    # Encoder with GRU
+    encoder = Encoder.RNN(options.word_dim, options.hidden_size, options.encoder_layers)
+    encoder.cuda() if options.use_gpu else None
 
-    print(encoderVar.shape)
-    print(decoderVar.shape)
+    # for epoch in tqdm(range(options.epochs)):
+    for batchX, batchY in tqdm(loader):
+        # 從長到短排序
+        batchX = batchX.tolist()
+        batchY = batchY.tolist()
+        lenX = [s.index(poet.EOS) + 1 for s in batchX]
+        lenY = [s.index(poet.EOS) + 1 for s in batchY]
+
+        pairMap = lambda len, batch: sorted(zip(len, batch), key=lambda x: x[0], reverse=True)
+        pairsX = pairMap(lenX, batchX)
+        pairsY = pairMap(lenY, batchY)
+        lenX, batchX = zip(*pairsX)
+        lenY, batchY = zip(*pairsY)
+
+        # 輸入encoder
+        varX = Variable(torch.LongTensor(batchX)).transpose(0, 1)
+        varY = Variable(torch.LongTensor(batchY)).transpose(0, 1)
+
+        varX = varX.cuda() if options.use_gpu else varX
+        varY = varY.cuda() if options.use_gpu else varY
+
+        encoderOut, encoderHidden = encoder(varX, list(lenX), None)
+        tqdm.write(str(encoderOut.size()))
+        tqdm.write(str(encoderHidden.size()))
 
 
 def saveNpz(**kwargs):
