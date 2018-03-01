@@ -64,8 +64,8 @@ class Poet(data.Dataset):
                   302762, 310070, 310072, 310074, 310076, 310078, 310080, 310082, 310084, 310086, 310088, 310090,
                   310092, 310094, 310096, 310098, 310100, 310102, 310104, 310106, 310108]  # 遺漏值索引
         self.npz = np.delete(np.load('data/poet.npz')['poetry'], filter, axis=0)
+        self.labelEncoder = pickle.load(open('data/label.pickle', 'rb'))
         self.type = type  # train, val, test
-        self.word_dim = 21589
         self.EOS = options.word_dim + 1
         self.PAD = 0
 
@@ -76,10 +76,13 @@ class Poet(data.Dataset):
             myMap = lambda x: x[:int(ratio * self.npz.shape[0]), 1]
             self.data = myMap(self.npz)
 
+    def getWordDim(self):
+        encoder = self.labelEncoder
+        return len(encoder.classes_)
+
     def __getitem__(self, index):
-        f = open('data/label.pickle', 'rb')
-        labelEncoder = pickle.load(f)
-        resultMap = lambda x: torch.from_numpy(np.append(labelEncoder.transform(list('\\n'.join(x))), [self.EOS]))
+        labelEncoder = self.labelEncoder
+        resultMap = lambda x: torch.from_numpy(np.append(labelEncoder.transform(list(''.join(x))), [self.EOS]))
         dataMap = lambda x: torch.from_numpy(
             np.append(labelEncoder.transform(list(map(lambda x: x[0], x))), [self.EOS]))
 
