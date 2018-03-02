@@ -1,9 +1,8 @@
 from utils import Visualizer
-from data import ChinsePoetry, Poet, OneHot
+from data import ChinsePoetry, Poet
 from tqdm import tqdm
 from config import Env
 from torch.autograd import Variable
-from sklearn.preprocessing import LabelEncoder
 from model import Encoder
 import numpy as np
 import torch
@@ -22,34 +21,6 @@ def padSeq(tensor, max_length, symbol):
 def getSeqLength(arr):
     myMap = lambda x: list(map(lambda xx: list(xx.size())[0], x))
     return myMap(arr)
-
-
-def preprocess(**kwargs):
-    import pickle
-
-    for k, v in kwargs.items():
-        setattr(options, k, v)
-
-    poet = np.load('data/poet.npz')['poetry']
-
-    print('字庫建立中...')
-    words = []
-
-    for arr in tqdm(poet):
-        sentences = arr[1]
-        for sentence in tqdm(sentences):
-            for word in tqdm(sentence):
-                words.append(word)
-
-    print('收錄' + str(len(words)) + '個字')
-
-    print('放入label encoder')
-    encoder = LabelEncoder()
-    encoder.fit(words)
-    print('Word dimension: ' + str(len(encoder.classes_)))
-
-    with open('data/label.pickle', 'wb') as f:
-        pickle.dump(encoder, f)
 
 
 def train(**kwargs):
@@ -93,31 +64,32 @@ def train(**kwargs):
     loader = D.DataLoader(dataset=dataset, batch_size=options.batch_size, num_workers=options.CPU)
 
     # Encoder with GRU
-    encoder = Encoder.RNN(poet.getWordDim(), options.hidden_size, options.encoder_layers)
+    encoder = Encoder.RNN(poet.getWordDim(), options.hidden_size, options.encoder_layers, options.dropout)
     encoder.cuda() if options.use_gpu else None
 
-    # for epoch in tqdm(range(options.epochs)):
-    for batchX, batchY in tqdm(loader):
-        # 從長到短排序
-        batchX = batchX.tolist()
-        batchY = batchY.tolist()
-        lenX = [s.index(poet.EOS) + 1 for s in batchX]
-        lenY = [s.index(poet.EOS) + 1 for s in batchY]
+    print('Training...')
+    for epoch in tqdm(range(options.epochs)):
+        for batchX, batchY in tqdm(loader):
+            # 從長到短排序
+            batchX = batchX.tolist()
+            batchY = batchY.tolist()
+            lenX = [s.index(poet.EOS) + 1 for s in batchX]
+            lenY = [s.index(poet.EOS) + 1 for s in batchY]
 
-        pairMap = lambda len, batch: sorted(zip(len, batch), key=lambda x: x[0], reverse=True)
-        pairsX = pairMap(lenX, batchX)
-        pairsY = pairMap(lenY, batchY)
-        lenX, batchX = zip(*pairsX)
-        lenY, batchY = zip(*pairsY)
+            pairMap = lambda len, batch: sorted(zip(len, batch), key=lambda x: x[0], reverse=True)
+            pairsX = pairMap(lenX, batchX)
+            pairsY = pairMap(lenY, batchY)
+            lenX, batchX = zip(*pairsX)
+            lenY, batchY = zip(*pairsY)
 
-        # 輸入encoder
-        varX = Variable(torch.LongTensor(batchX)).transpose(0, 1).contiguous()
-        varY = Variable(torch.LongTensor(batchY)).transpose(0, 1).contiguous()
+            # 輸入encoder
+            varX = Variable(torch.LongTensor(batchX)).transpose(0, 1).contiguous()
+            varY = Variable(torch.LongTensor(batchY)).transpose(0, 1).contiguous()
 
-        varX = varX.cuda() if options.use_gpu else varX
-        varY = varY.cuda() if options.use_gpu else varY
+            varX = varX.cuda() if options.use_gpu else varX
+            varY = varY.cuda() if options.use_gpu else varY
 
-        encoderOut, encoderHidden = encoder(varX, list(lenX), None)
+            encoderOut, encoderHidden = encoder(varX, list(lenX), None)
 
 
 def saveNpz(**kwargs):
