@@ -117,11 +117,7 @@ def train(**kwargs):
         varX = varX.cuda() if options.use_gpu else varX
         varY = varY.cuda() if options.use_gpu else varY
 
-        # encoderOut, encoderHidden = encoder(varX, list(lenX), None)
-        # tqdm.write(str(encoderOut.size()))
-
-        encoderOut = encoder(varX, list(lenX), None)
-        tqdm.write(str(encoderOut.size()))
+        encoderOut, encoderHidden = encoder(varX, list(lenX), None)
 
 
 def saveNpz(**kwargs):
