@@ -111,13 +111,16 @@ def train(**kwargs):
         lenY, batchY = zip(*pairsY)
 
         # 輸入encoder
-        varX = Variable(torch.LongTensor(batchX)).transpose(0, 1)
-        varY = Variable(torch.LongTensor(batchY)).transpose(0, 1)
+        varX = Variable(torch.LongTensor(batchX)).transpose(0, 1).contiguous()
+        varY = Variable(torch.LongTensor(batchY)).transpose(0, 1).contiguous()
 
         varX = varX.cuda() if options.use_gpu else varX
         varY = varY.cuda() if options.use_gpu else varY
 
-        encoderOut, encoderHidden = encoder(varX, list(lenX), None)
+        # encoderOut, encoderHidden = encoder(varX, list(lenX), None)
+        # tqdm.write(str(encoderOut.size()))
+
+        encoderOut = encoder(varX, list(lenX), None)
         tqdm.write(str(encoderOut.size()))
 
 

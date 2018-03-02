@@ -66,7 +66,7 @@ class Poet(data.Dataset):
         self.npz = np.delete(np.load('data/poet.npz')['poetry'], filter, axis=0)
         self.labelEncoder = pickle.load(open('data/label.pickle', 'rb'))
         self.type = type  # train, val, test
-        self.EOS = options.word_dim + 1
+        self.EOS = len(self.labelEncoder.classes_) - 1
         self.PAD = 0
 
         np.random.seed(seed)  # 讓每次打亂random都一樣
