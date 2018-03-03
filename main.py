@@ -53,7 +53,7 @@ def train(**kwargs):
         [encoderPadded[i], decoderPadded[i]] = list(map(lambda x, y, z: padSeq(x, y, z), [data, result],
                                                         [maxEncoderLength, maxDecoderLength], [poet.PAD, poet.PAD]))
 
-    # TODO: 訓練Seq2seq Model
+    # 訓練Seq2seq Model
     [encoderTensor, decoderTensor] = list(map(torch.stack, [encoderPadded, decoderPadded]))
     dataset = D.TensorDataset(data_tensor=encoderTensor.long(), target_tensor=decoderTensor.long())
     loader = D.DataLoader(dataset=dataset, batch_size=options.batch_size, num_workers=options.CPU)
@@ -65,10 +65,11 @@ def train(**kwargs):
     print('Training...')
     for epoch in tqdm(range(options.epochs)):
         for batchX, batchY in tqdm(loader):
-            # 從長到短排序
+            # 找出batch中每個sequence的長度
             [batchX, batchY] = list(map(lambda x: x.tolist(), [batchX, batchY]))
             [lenX, lenY] = list(map(lambda x, y: [s.index(x) + 1 for s in y], [poet.EOS, poet.EOS], [batchX, batchY]))
 
+            # 將batch中sequences按長到短進行排序
             sortBatch = lambda x, y: zip(*sorted(zip(x, y), key=lambda x: x[0], reverse=True))
             [(lenX, batchX), (lenY, batchY)] = list(map(sortBatch, [lenX, lenY], [batchX, batchY]))
 
