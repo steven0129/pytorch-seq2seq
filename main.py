@@ -32,12 +32,10 @@ def lmap(*args):
 
 
 def train(**kwargs):
-    lmap(lambda x, y: x + y, [1], [2])
-
     for k, v in kwargs.items():
         setattr(options, k, v)
 
-    # 創建新visdom
+        # 創建新visdom
     vis = Visualizer(env=options.env)
 
     # 拿取data
