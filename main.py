@@ -16,13 +16,8 @@ def train(**kwargs):
     for k, v in kwargs.items():
         setattr(options, k, v)
 
-    # 創建新visdom
     vis = Visualizer(env=options.env)
-
-    # 拿取data
     poet = Poet(type='train', ratio=options.ratio)
-
-    # 求seq最大長度
     [encoderLengths, decoderLengths] = lmap(lambda x: torch.zeros(len(x)).long(), [poet, poet])
 
     print('正在計算seq最大長度...')
@@ -32,7 +27,6 @@ def train(**kwargs):
 
     [maxEncoderLength, maxDecoderLength] = lmap(torch.max, [encoderLengths, decoderLengths])  # encoder, decoder最大長度
 
-    # 幫sequence補0
     print('padding sequences...')
     [encoderPadded, decoderPadded] = lmap(lambda x, y: torch.zeros(len(x), y), [poet, poet],
                                           [maxEncoderLength, maxDecoderLength])
@@ -41,12 +35,10 @@ def train(**kwargs):
         [encoderPadded[i], decoderPadded[i]] = lmap(lambda x, y, z: padSeq(x, y, z), [data, result],
                                                     [maxEncoderLength, maxDecoderLength], [poet.PAD, poet.PAD])
 
-    # 訓練Seq2seq Model
     [encoderTensor, decoderTensor] = lmap(torch.stack, [encoderPadded, decoderPadded])
     dataset = D.TensorDataset(data_tensor=encoderTensor.long(), target_tensor=decoderTensor.long())
     loader = D.DataLoader(dataset=dataset, batch_size=options.batch_size, num_workers=options.CPU)
 
-    # Encoder with GRU
     encoder = Encoder.RNN(poet.getWordDim(), options.hidden_size, options.encoder_layers, options.dropout)
     encoder.cuda() if options.use_gpu else None
 
