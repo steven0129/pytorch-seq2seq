@@ -1,8 +1,6 @@
 from torch import nn
-from torch.autograd import Variable
 from config import Env
 import torch
-import torch.nn.functional as F
 
 options = Env()
 

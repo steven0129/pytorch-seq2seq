@@ -67,6 +67,7 @@ class Poet(data.Dataset):
         self.labelEncoder = pickle.load(open('data/label.pickle', 'rb'))
         self.type = type  # train, val, test
         self.EOS = len(self.labelEncoder.classes_) - 1
+        self.SOS = len(self.labelEncoder.classes_) - 2
         self.PAD = 0
 
         np.random.seed(seed)  # 讓每次打亂random都一樣
@@ -82,9 +83,10 @@ class Poet(data.Dataset):
 
     def __getitem__(self, index):
         labelEncoder = self.labelEncoder
-        resultMap = lambda x: torch.from_numpy(np.append(labelEncoder.transform(list(''.join(x))), [self.EOS]))
+        resultMap = lambda x: torch.from_numpy(
+            np.append(np.append([self.SOS], labelEncoder.transform(list(''.join(x)))), [self.EOS]))
         dataMap = lambda x: torch.from_numpy(
-            np.append(labelEncoder.transform(list(map(lambda x: x[0], x))), [self.EOS]))
+            np.append(np.append([self.SOS], labelEncoder.transform(list(map(lambda x: x[0], x)))), [self.EOS]))
 
         resultItem = resultMap(self.data[index])
         dataItem = dataMap(self.data[index])

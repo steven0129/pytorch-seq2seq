@@ -2,12 +2,13 @@ from utils import Visualizer
 from data import ChinsePoetry, Poet
 from tqdm import tqdm
 from config import Env
-from model import Encoder
+from model import Encoder, Decoder
 from torch.autograd import Variable
 from torch.utils import data as D
 from func import padSeq, getSeqLength, emap, lmap
 import numpy as np
 import torch
+import multiprocessing as mp
 
 options = Env()
 
@@ -18,29 +19,30 @@ def train(**kwargs):
 
     vis = Visualizer(env=options.env)
     poet = Poet(type='train', ratio=options.ratio)
-    [enLengths, deLengths] = lmap(lambda x: torch.zeros(len(x)).long(), [poet, poet])
 
     print('正在計算seq最大長度...')
+    [enLengths, deLengths] = lmap(lambda x: torch.zeros(len(x)).long(), [poet, poet])
     for i, [enLength, deLength] in tqdm(emap(getSeqLength, poet), total=len(poet)):
         # TODO: 有沒有方法可以加速?
-        [enLengths[i], deLengths[i]] = lmap(lambda x: x, [enLength, deLength])
+        [enLengths[i], deLengths[i]] = [enLength, deLength]
 
     [maxEnLength, maxDeLength] = lmap(torch.max, [enLengths, deLengths])  # encoder, decoder最大長度
 
     print('padding sequences...')
-    [enPadded, dePadded] = lmap(lambda x, y: torch.zeros(len(x), y), [poet, poet],
-                                          [maxEnLength, maxDeLength])
+    [enPadded, dePadded] = lmap(lambda x, y: torch.zeros(len(x), y), [poet, poet], [maxEnLength, maxDeLength])
     for i, [data, result] in tqdm(enumerate(poet), total=len(poet)):
         # TODO: 有沒有方法可以加速?
-        [enPadded[i], dePadded[i]] = lmap(lambda x, y, z: padSeq(x, y, z), [data, result],
-                                                    [maxEnLength, maxDeLength], [poet.PAD, poet.PAD])
+        [enPadded[i], dePadded[i]] = lmap(lambda x, y, z: padSeq(x, y, z), [data, result], [maxEnLength, maxDeLength],
+                                          [poet.PAD, poet.PAD])
 
     [enTensor, deTensor] = lmap(torch.stack, [enPadded, dePadded])
     dataset = D.TensorDataset(data_tensor=enTensor.long(), target_tensor=deTensor.long())
-    loader = D.DataLoader(dataset=dataset, batch_size=options.batch_size, num_workers=options.CPU)
+    loader = D.DataLoader(dataset=dataset, batch_size=options.batch_size, num_workers=mp.cpu_count())
 
     encoder = Encoder.RNN(poet.getWordDim(), options.hidden_size, options.encoder_layers, options.dropout)
+    decoder = Decoder.LAttnRNN('general', options.hidden_size, poet.getWordDim())
     encoder.cuda() if options.use_gpu else None
+    decoder.cuda() if options.use_gpu else None
 
     print('Training...')
     for epoch in tqdm(range(options.epochs)):
@@ -54,12 +56,24 @@ def train(**kwargs):
             [(lenX, batchX), (lenY, batchY)] = lmap(sortBatch, [lenX, lenY], [batchX, batchY])
 
             # 存成Variable
-            [varX, varY] = lmap(lambda x: Variable(torch.LongTensor(x)).transpose(0, 1).contiguous(), [batchX, batchY])
+            [varX, varY] = lmap(lambda x: Variable(torch.Tensor(x).long()).transpose(0, 1), [batchX, batchY])
             [varX, varY] = lmap(lambda x: x.cuda() if options.use_gpu else x, [varX, varY])
 
             # 輸入encoder
-            enOut, enHidden = encoder(varX, list(lenX), None)
-            tqdm.write(str(enHidden.size()))
+            enOuts, enHidden = encoder(varX, list(lenX), None)
+
+            # 準備decoder的輸入
+            deIn = Variable(torch.Tensor([poet.SOS] * options.batch_size).long())
+            allDeOuts = Variable(torch.zeros(max(lenY), options.batch_size, decoder.output_size))
+
+            [deIn, allDeOuts] = lmap(lambda x: x.cuda(), [deIn, allDeOuts])
+
+            # 輸入decoder
+            deHidden = enHidden[:decoder.n_layers]
+            for t in tqdm(range(max(lenY))):
+                deOut, deHidden, deAttn = decoder(deIn, deHidden, enOuts)
+                allDeOuts[t] = deOut
+                deIn = varY[t]  # 下一次的輸入是這一次的輸出
 
 
 def saveNpz(**kwargs):
