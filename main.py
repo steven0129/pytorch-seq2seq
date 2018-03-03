@@ -2,40 +2,21 @@ from utils import Visualizer
 from data import ChinsePoetry, Poet
 from tqdm import tqdm
 from config import Env
-from torch.autograd import Variable
 from model import Encoder
+from torch.autograd import Variable
+from torch.utils import data as D
+from func import padSeq, getSeqLength, emap, lmap
 import numpy as np
 import torch
-from torch.utils import data as D
-import torch.nn.functional as F
 
 options = Env()
-
-
-# Pad a with the PAD symbol
-def padSeq(tensor, max_length, symbol):
-    tensor = F.pad(tensor, (0, max_length - tensor.size()[0]), 'constant', symbol).data
-    return tensor
-
-
-def getSeqLength(arr):
-    myMap = lambda x: list(map(lambda xx: list(xx.size())[0], x))
-    return myMap(arr)
-
-
-def emap(*args):
-    return enumerate(map(*args))
-
-
-def lmap(*args):
-    return list(map(*args))
 
 
 def train(**kwargs):
     for k, v in kwargs.items():
         setattr(options, k, v)
 
-        # 創建新visdom
+    # 創建新visdom
     vis = Visualizer(env=options.env)
 
     # 拿取data
