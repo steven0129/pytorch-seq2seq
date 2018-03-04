@@ -19,14 +19,7 @@ def train(**kwargs):
 
     vis = Visualizer(env=options.env)
     poet = Poet(type='train', ratio=options.ratio)
-
-    print('正在計算seq最大長度...')
-    [enLengths, deLengths] = lmap(lambda x: torch.zeros(len(x)).long(), [poet, poet])
-    for i, [enLength, deLength] in tqdm(emap(getSeqLength, poet), total=len(poet)):
-        # TODO: 有沒有方法可以加速?
-        [enLengths[i], deLengths[i]] = [enLength, deLength]
-
-    [maxEnLength, maxDeLength] = lmap(torch.max, [enLengths, deLengths])  # encoder, decoder最大長度
+    [maxEnLength, maxDeLength] = [poet.dataLen + 2, poet.resultLen + 2]
 
     print('padding sequences...')
     [enPadded, dePadded] = lmap(lambda x, y: torch.zeros(len(x), y), [poet, poet], [maxEnLength, maxDeLength])
@@ -37,7 +30,7 @@ def train(**kwargs):
 
     [enTensor, deTensor] = lmap(torch.stack, [enPadded, dePadded])
     dataset = D.TensorDataset(data_tensor=enTensor.long(), target_tensor=deTensor.long())
-    loader = D.DataLoader(dataset=dataset, batch_size=options.batch_size, num_workers=mp.cpu_count())
+    loader = D.DataLoader(dataset=dataset, batch_size=options.batch_size, drop_last=True, num_workers=mp.cpu_count())
 
     encoder = Encoder.RNN(poet.getWordDim(), options.hidden_size, options.encoder_layers, options.dropout)
     decoder = Decoder.LAttnRNN('general', options.hidden_size, poet.getWordDim())
@@ -56,7 +49,9 @@ def train(**kwargs):
             [(lenX, batchX), (lenY, batchY)] = lmap(sortBatch, [lenX, lenY], [batchX, batchY])
 
             # 存成Variable
-            [varX, varY] = lmap(lambda x: Variable(torch.Tensor(x).long()).transpose(0, 1), [batchX, batchY])
+            [varX, varY] = lmap(lambda x: Variable(torch.Tensor(x).long()).transpose(0, 1),
+                                [batchX, batchY])
+
             [varX, varY] = lmap(lambda x: x.cuda() if options.use_gpu else x, [varX, varY])
 
             # 輸入encoder
@@ -66,7 +61,7 @@ def train(**kwargs):
             deIn = Variable(torch.Tensor([poet.SOS] * options.batch_size).long())
             allDeOuts = Variable(torch.zeros(max(lenY), options.batch_size, decoder.output_size))
 
-            [deIn, allDeOuts] = lmap(lambda x: x.cuda(), [deIn, allDeOuts])
+            [deIn, allDeOuts] = lmap(lambda x: x.cuda() if options.use_gpu else x, [deIn, allDeOuts])
 
             # 輸入decoder
             deHidden = enHidden[:decoder.n_layers]

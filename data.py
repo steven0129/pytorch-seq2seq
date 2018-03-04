@@ -31,7 +31,7 @@ class ChinsePoetry():
         self.path = 'data/'
         self.fileNames = self._fileNames()
 
-    def _fileNames(self, subFileName='.json', startFileName='poet'):
+    def _fileNames(self, subFileName='.json', startFileName='poet.tang'):
         path = self.path
         jsonFiles = [file for file in os.listdir(path) if file.endswith(subFileName) and file.startswith(startFileName)]
         return jsonFiles
@@ -54,18 +54,16 @@ class ChinsePoetry():
 
 class Poet(data.Dataset):
     def __init__(self, type='train', ratio=0.6, seed=1):
-        filter = [6240, 7802, 12280, 24700, 26395, 31326, 38520, 40163, 50285, 53447, 70357, 70420, 70496, 70590,
-                  70615, 70738, 71041, 73598, 74755, 84433, 89316, 95806, 97300, 104323, 104325, 107020, 108846,
-                  109034, 109357, 109845, 109914, 109984, 110083, 110085, 110106, 110119, 110355, 110745, 131628,
-                  134157, 134252, 134436, 137556, 138876, 146343, 149505, 152865, 155178, 163492, 166584, 166593,
-                  179122, 179603, 179669, 179698, 197369, 197739, 197743, 197771, 197802, 200813, 201415, 211829,
-                  222786, 225349, 230059, 234159, 234634, 240251, 251118, 251818, 255825, 255917, 257192, 263377,
-                  263385, 263912, 263976, 263987, 264959, 273967, 279885, 280377, 286757, 287437, 288109, 288155,
-                  302762, 310070, 310072, 310074, 310076, 310078, 310080, 310082, 310084, 310086, 310088, 310090,
-                  310092, 310094, 310096, 310098, 310100, 310102, 310104, 310106, 310108]  # 遺漏值索引
-        self.npz = np.delete(np.load('data/poet.npz')['poetry'], filter, axis=0)
+        filterID = [1003, 2283, 6210, 12120, 12183, 12259, 12353, 12378, 12501, 12804, 13518, 18063, 19086, 19088,
+                    20609, 20797, 21120, 25319, 30347, 30356, 31885, 32366, 32432, 32461, 36881, 37581, 40588, 40955,
+                    43140, 43148, 44730, 46648, 47140, 48872, 48918, 55525, ]
+
+        self.npz = np.delete(np.load('data/poet.npz')['poetry'], filterID, axis=0)
+        # self.npz = np.load('data/poet.npz')['poetry']
         self.labelEncoder = pickle.load(open('data/label.pickle', 'rb'))
         self.type = type  # train, val, test
+        self.resultLen = 64
+        self.dataLen = 8
         self.EOS = len(self.labelEncoder.classes_) - 1
         self.SOS = len(self.labelEncoder.classes_) - 2
         self.PAD = 0
@@ -84,9 +82,10 @@ class Poet(data.Dataset):
     def __getitem__(self, index):
         labelEncoder = self.labelEncoder
         resultMap = lambda x: torch.from_numpy(
-            np.append(np.append([self.SOS], labelEncoder.transform(list(''.join(x)))), [self.EOS]))
+            np.append(np.append([self.SOS], labelEncoder.transform(list(''.join(x))[0:self.resultLen])), [self.EOS]))
         dataMap = lambda x: torch.from_numpy(
-            np.append(np.append([self.SOS], labelEncoder.transform(list(map(lambda x: x[0], x)))), [self.EOS]))
+            np.append(np.append([self.SOS], labelEncoder.transform(list(map(lambda xx: xx[0], x))[0:self.dataLen])),
+                      [self.EOS]))
 
         resultItem = resultMap(self.data[index])
         dataItem = dataMap(self.data[index])
