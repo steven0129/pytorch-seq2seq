@@ -6,6 +6,8 @@ from model import Encoder, Decoder
 from torch.autograd import Variable
 from torch.utils import data as D
 from func import padSeq, getSeqLength, emap, lmap
+from loss import masked_cross_entropy
+import torch.nn as nn
 import numpy as np
 import torch
 import multiprocessing as mp
@@ -39,6 +41,8 @@ def train(**kwargs):
 
     print('Training...')
     for epoch in tqdm(range(options.epochs)):
+        totalLoss = 0
+
         for batchX, batchY in tqdm(loader):
             # 找出batch中每個sequence的長度
             [batchX, batchY] = lmap(lambda x: x.tolist(), [batchX, batchY])
@@ -69,6 +73,13 @@ def train(**kwargs):
                 deOut, deHidden, deAttn = decoder(deIn, deHidden, enOuts, options.use_gpu)
                 allDeOuts[t] = deOut
                 deIn = varY[t]  # 下一次的輸入是這一次的輸出
+
+            loss = masked_cross_entropy(
+                allDeOuts.transpose(0, 1).contiguous(), varY.transpose(0, 1).contiguous(), lenY,
+                use_gpu=options.use_gpu)
+            loss.backward()
+            totalLoss += loss
+        tqdm.write('epoch = ' + str(epoch + 1) + ', loss = ' + str(totalLoss.data[0]))
 
 
 def saveNpz(**kwargs):
