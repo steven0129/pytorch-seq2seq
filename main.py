@@ -66,7 +66,7 @@ def train(**kwargs):
             # 輸入decoder
             deHidden = enHidden[:decoder.n_layers]
             for t in tqdm(range(max(lenY))):
-                deOut, deHidden, deAttn = decoder(deIn, deHidden, enOuts)
+                deOut, deHidden, deAttn = decoder(deIn, deHidden, enOuts, options.use_gpu)
                 allDeOuts[t] = deOut
                 deIn = varY[t]  # 下一次的輸入是這一次的輸出
 

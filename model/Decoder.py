@@ -31,7 +31,7 @@ class LAttnRNN(nn.Module):
         if attn_model != 'none':
             self.attn = Attn(attn_model, hidden_size)
 
-    def forward(self, input_seq, last_hidden, encoder_outputs):
+    def forward(self, input_seq, last_hidden, encoder_outputs, use_gpu=True):
         # Note: we run this one step at a time
 
         # Get the embedding of the current input word (last output word)
@@ -45,7 +45,7 @@ class LAttnRNN(nn.Module):
 
         # Calculate attention from current RNN state and all encoder outputs;
         # apply to encoder outputs to get weighted average
-        attn_weights = self.attn(rnn_output, encoder_outputs)
+        attn_weights = self.attn(rnn_output, encoder_outputs, use_gpu)
         context = attn_weights.bmm(encoder_outputs.transpose(0, 1))  # B x S=1 x N
 
         # Attentional vector using the RNN hidden state and context vector

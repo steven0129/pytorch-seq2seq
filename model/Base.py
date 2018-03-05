@@ -1,11 +1,7 @@
-from config import Env
 from torch import nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torch
-
-options = Env()
-
 
 class Attn(nn.Module):
     def __init__(self, method, hidden_size):
@@ -21,14 +17,14 @@ class Attn(nn.Module):
             self.attn = nn.Linear(self.hidden_size * 2, hidden_size)
             self.v = nn.Parameter(torch.FloatTensor(1, hidden_size))
 
-    def forward(self, hidden, encoder_outputs):
+    def forward(self, hidden, encoder_outputs, use_gpu=True):
         max_len = encoder_outputs.size(0)
         this_batch_size = encoder_outputs.size(1)
 
         # Create variable to store attention energies
         attn_energies = Variable(torch.zeros(this_batch_size, max_len))  # B x S
 
-        if options.use_gpu:
+        if use_gpu:
             attn_energies = attn_energies.cuda()
 
         # For each batch of encoder outputs
