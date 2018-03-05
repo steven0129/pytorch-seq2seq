@@ -69,16 +69,17 @@ def train(**kwargs):
 
             # 輸入decoder
             deHidden = enHidden[:decoder.n_layers]
+            loss = 0
+
             for t in tqdm(range(max(lenY))):
                 deOut, deHidden, deAttn = decoder(deIn, deHidden, enOuts, options.use_gpu)
                 allDeOuts[t] = deOut
                 deIn = varY[t]  # 下一次的輸入是這一次的輸出
+                loss += nn.NLLLoss()(nn.LogSoftmax()(deOut), varY[t])
 
-            loss = masked_cross_entropy(
-                allDeOuts.transpose(0, 1).contiguous(), varY.transpose(0, 1).contiguous(), lenY,
-                use_gpu=options.use_gpu)
             loss.backward()
             totalLoss += loss
+        
         tqdm.write('epoch = ' + str(epoch + 1) + ', loss = ' + str(totalLoss.data[0]))
 
 
