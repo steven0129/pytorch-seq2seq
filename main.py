@@ -83,6 +83,7 @@ def train(**kwargs):
         torch.save({
             'epoch': str(epoch + 1),
             'loss': str(totalLoss.data[0]),
+            'batch_size': options.batch_size,
             'enState': encoder.state_dict(),
             'deState': decoder.state_dict()
         })
