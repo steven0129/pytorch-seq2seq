@@ -86,7 +86,7 @@ def train(**kwargs):
             'batch_size': options.batch_size,
             'enState': encoder.state_dict(),
             'deState': decoder.state_dict()
-        }, 'model-loss-' + str(totalLoss.data[0]) + '.pt')
+        }, 'model-loss-' + str(int(totalLoss.data[0])) + '.pt')
 
         tqdm.write('epoch = ' + str(epoch + 1) + ', loss = ' + str(totalLoss.data[0]))
 
