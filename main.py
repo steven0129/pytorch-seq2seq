@@ -80,7 +80,7 @@ def train(**kwargs):
             loss.backward()
             totalLoss += loss
         
-        tqdm.write('epoch = ' + str(epoch + 1) + ', loss = ' + str(totalLoss.data[0]))
+        tqdm.write('epoch = ' + str(epoch + 1) + ', loss = ' + str(totalLoss.data[0]/len(poet)))
 
 
 def saveNpz(**kwargs):
