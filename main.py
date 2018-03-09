@@ -32,7 +32,7 @@ def train(**kwargs):
 
     [enTensor, deTensor] = lmap(torch.stack, [enPadded, dePadded])
     dataset = D.TensorDataset(data_tensor=enTensor.long(), target_tensor=deTensor.long())
-    loader = D.DataLoader(dataset=dataset, batch_size=options.batch_size, drop_last=True, num_workers=mp.cpu_count())
+    loader = D.DataLoader(dataset=dataset, batch_size=options.batch_size, drop_last=True, num_workers=0)
 
     encoder = Encoder.RNN(poet.getWordDim(), options.hidden_size, options.encoder_layers, options.dropout)
     decoder = Decoder.LAttnRNN('general', options.hidden_size, poet.getWordDim())
