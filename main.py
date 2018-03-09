@@ -78,8 +78,15 @@ def train(**kwargs):
                 loss += nn.NLLLoss()(nn.LogSoftmax()(deOut), varY[t])
 
             loss.backward()
-            totalLoss += loss/(varY.size()[0]/options.batch_size)
-        
+            totalLoss += loss / (varY.size()[0] / options.batch_size)
+
+        torch.save({
+            'epoch': str(epoch + 1),
+            'loss': str(totalLoss.data[0]),
+            'enState': encoder.state_dict(),
+            'deState': decoder.state_dict()
+        })
+
         tqdm.write('epoch = ' + str(epoch + 1) + ', loss = ' + str(totalLoss.data[0]))
 
 
