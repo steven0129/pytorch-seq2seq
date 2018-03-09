@@ -78,7 +78,7 @@ def train(**kwargs):
                 loss += nn.NLLLoss()(nn.LogSoftmax()(deOut), varY[t])
 
             loss.backward()
-            totalLoss += loss/varY.size()[0]
+            totalLoss += loss/(varY.size()[0]/options.batch_size)
         
         tqdm.write('epoch = ' + str(epoch + 1) + ', loss = ' + str(totalLoss.data[0]))
 
