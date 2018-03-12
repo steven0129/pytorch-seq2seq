@@ -57,6 +57,7 @@ def train(**kwargs):
                                 [batchX, batchY])
 
             [varX, varY] = lmap(lambda x: x.cuda() if options.use_gpu else x, [varX, varY])
+            [varX, varY] = lmap(lambda x: x / poet.getWordDim(), [varX, varY])
 
             # 輸入encoder
             enOuts, enHidden = encoder(varX, list(lenX), None)
